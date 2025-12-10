@@ -86,11 +86,11 @@ main {
   transition: all 0.3s ease;
   position: relative;
   font-family: inherit;
+  color: rgb(79, 79, 79);
 }
 
 .tab-btn:hover {
-  color: var(--text);
-  background: rgba(77, 208, 225, 0.1);
+  background: rgba(52, 53, 53, 0.2);
 }
 
 .tab-btn.active {
