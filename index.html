@@ -30,6 +30,7 @@
       <div class="tabs-container">
         <div class="tabs-nav">
           <button class="tab-btn active" data-tab="overview">Overview</button>
+          <button class="tab-btn" data-tab="analytics">Analytics</button>
           <button class="tab-btn" data-tab="income-expenses">Income & Expenses</button>
           <button class="tab-btn" data-tab="assets-liabilities">Assets & Liabilities</button>
           <button class="tab-btn" data-tab="investments">Investments</button>
@@ -100,6 +101,104 @@
                 <span>Simple bar chart for last 6 months</span>
               </div>
               <canvas id="trend-chart" height="120"></canvas>
+            </section>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="analytics-tab">
+          <div class="dashboard">
+            <section class="card full-span">
+              <div class="card-head">
+                <h2>Monthly Income vs Expenses</h2>
+                <span>Track overspending and living below your means</span>
+              </div>
+              <canvas id="income-expenses-chart"></canvas>
+            </section>
+
+            <section class="card full-span">
+              <div class="card-head">
+                <h2>Savings Rate Trend</h2>
+                <span>% of income saved each month - track your discipline</span>
+              </div>
+              <canvas id="savings-rate-chart"></canvas>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Category-wise Expenses</h2>
+                <span>See where your money goes</span>
+              </div>
+              <canvas id="expense-category-chart"></canvas>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Investment Distribution</h2>
+                <span>Portfolio allocation breakdown</span>
+              </div>
+              <canvas id="investment-ratio-chart"></canvas>
+            </section>
+
+            <section class="card full-span">
+              <div class="card-head">
+                <h2>Net Worth Over Time</h2>
+                <span>Assets − Liabilities - track your wealth growth</span>
+              </div>
+              <canvas id="net-worth-chart"></canvas>
+            </section>
+
+            <section class="card full-span">
+              <div class="card-head">
+                <h2>Cashflow Trend</h2>
+                <span>Income − Expenses - free cash available each month</span>
+              </div>
+              <canvas id="cashflow-trend-chart"></canvas>
+            </section>
+
+            <section class="card full-span">
+              <div class="card-head">
+                <h2>Monthly Expense Trend</h2>
+                <span>Track spending patterns and lifestyle creep</span>
+              </div>
+              <canvas id="expense-trend-chart"></canvas>
+            </section>
+
+            <section class="card full-span">
+              <div class="card-head">
+                <h2>Budget vs Actual Spend</h2>
+                <span>Compare planned vs actual spending by category</span>
+              </div>
+              <canvas id="budget-vs-actual-chart"></canvas>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <h2>Emergency Fund Progress</h2>
+                <span>Track your safety net</span>
+              </div>
+              <div class="emergency-gauge-container">
+                <div class="emergency-gauge">
+                  <div class="gauge-fill" id="emergency-gauge-fill"></div>
+                  <div class="gauge-text">
+                    <span id="emergency-gauge-percent">0%</span>
+                    <small id="emergency-gauge-details">₹0 / ₹0</small>
+                  </div>
+                </div>
+                <div class="emergency-stats">
+                  <div>
+                    <p class="muted">Target</p>
+                    <strong id="emergency-gauge-target">₹0</strong>
+                  </div>
+                  <div>
+                    <p class="muted">Saved</p>
+                    <strong id="emergency-gauge-saved">₹0</strong>
+                  </div>
+                  <div>
+                    <p class="muted">Remaining</p>
+                    <strong id="emergency-gauge-remaining">₹0</strong>
+                  </div>
+                </div>
+              </div>
             </section>
           </div>
         </div>

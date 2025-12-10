@@ -29,6 +29,14 @@ const defaultState = {
 
 const state = loadState();
 let trendChart;
+let incomeExpensesChart;
+let savingsRateChart;
+let expenseCategoryChart;
+let investmentRatioChart;
+let netWorthChart;
+let cashflowTrendChart;
+let expenseTrendChart;
+let budgetVsActualChart;
 
 init();
 
@@ -312,6 +320,7 @@ function renderAll() {
   renderTransactions();
   renderMonthlyReport();
   renderTrendChart();
+  renderAnalyticsCharts();
 }
 
 function renderList(key, elementId) {
@@ -632,7 +641,383 @@ function bindTabs() {
       const targetPanel = document.getElementById(`${targetTab}-tab`);
       if (targetPanel) {
         targetPanel.classList.add('active');
+        // Re-render analytics charts when analytics tab is opened
+        if (targetTab === 'analytics') {
+          renderAnalyticsCharts();
+        }
       }
     });
   });
+}
+
+function renderAnalyticsCharts() {
+  renderIncomeExpensesChart();
+  renderSavingsRateChart();
+  renderExpenseCategoryChart();
+  renderInvestmentRatioChart();
+  renderNetWorthChart();
+  renderCashflowTrendChart();
+  renderExpenseTrendChart();
+  renderBudgetVsActualChart();
+  renderEmergencyGauge();
+}
+
+function renderIncomeExpensesChart() {
+  const canvas = document.getElementById('income-expenses-chart');
+  if (!canvas) return;
+  const series = buildMonthlySeries(6);
+  if (incomeExpensesChart) incomeExpensesChart.destroy();
+  incomeExpensesChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: series.labels,
+      datasets: [
+        {
+          label: 'Income',
+          data: series.income,
+          backgroundColor: '#4dd0e1',
+          borderRadius: 4
+        },
+        {
+          label: 'Expenses',
+          data: series.expenses,
+          backgroundColor: '#ff6b6b',
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: '#fff' } },
+        title: { display: false }
+      },
+      scales: {
+        x: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+        y: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+      }
+    }
+  });
+}
+
+function renderSavingsRateChart() {
+  const canvas = document.getElementById('savings-rate-chart');
+  if (!canvas) return;
+  const series = buildMonthlySeries(6);
+  const savingsRates = series.labels.map((_, i) => {
+    const income = series.income[i];
+    const savings = series.savings[i];
+    return income > 0 ? (savings / income) * 100 : 0;
+  });
+  if (savingsRateChart) savingsRateChart.destroy();
+  savingsRateChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: series.labels,
+      datasets: [
+        {
+          label: 'Savings Rate %',
+          data: savingsRates,
+          borderColor: '#7dd71d',
+          backgroundColor: 'rgba(125, 215, 29, 0.1)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 5,
+          pointBackgroundColor: '#7dd71d',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: '#fff' } },
+        title: { display: false }
+      },
+      scales: {
+        x: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+        y: {
+          ticks: { color: '#fff', callback: (value) => `${value}%` },
+          grid: { color: 'rgba(255,255,255,0.1)' }
+        }
+      }
+    }
+  });
+}
+
+function renderExpenseCategoryChart() {
+  const canvas = document.getElementById('expense-category-chart');
+  if (!canvas) return;
+  const expensesByCategory = groupExpenses();
+  const labels = Object.keys(expensesByCategory).map(capitalize);
+  const data = Object.values(expensesByCategory);
+  const colors = ['#ff6b6b', '#4dd0e1', '#7dd71d', '#f6c343', '#ffa726', '#ab47bc', '#26a69a'];
+  if (expenseCategoryChart) expenseCategoryChart.destroy();
+  expenseCategoryChart = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          data: data,
+          backgroundColor: colors.slice(0, labels.length),
+          borderWidth: 2,
+          borderColor: '#3d4148'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#fff', padding: 15 }
+        },
+        title: { display: false }
+      }
+    }
+  });
+}
+
+function renderInvestmentRatioChart() {
+  const canvas = document.getElementById('investment-ratio-chart');
+  if (!canvas) return;
+  const investments = state.investments;
+  const labels = [];
+  const data = [];
+  Object.entries(investments).forEach(([category, values]) => {
+    if (values.invested > 0) {
+      labels.push(category);
+      data.push(values.invested);
+    }
+  });
+  const colors = ['#4dd0e1', '#7dd71d', '#f6c343', '#ffa726', '#ab47bc'];
+  if (investmentRatioChart) investmentRatioChart.destroy();
+  if (labels.length === 0) return;
+  investmentRatioChart = new Chart(canvas, {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          data: data,
+          backgroundColor: colors.slice(0, labels.length),
+          borderWidth: 2,
+          borderColor: '#3d4148'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#fff', padding: 15 }
+        },
+        title: { display: false }
+      }
+    }
+  });
+}
+
+function renderNetWorthChart() {
+  const canvas = document.getElementById('net-worth-chart');
+  if (!canvas) return;
+  const series = buildMonthlySeries(6);
+  const totalAssets = sum(state.assets);
+  const totalLiabilities = sum(state.liabilities);
+  const currentNetWorth = totalAssets - totalLiabilities;
+  // Calculate approximate net worth trend: start with current, work backwards
+  // This is a simplified calculation - in reality you'd track asset/liability changes over time
+  const netWorths = [];
+  let runningNetWorth = currentNetWorth;
+  for (let i = series.labels.length - 1; i >= 0; i--) {
+    // Approximate: subtract monthly savings to work backwards
+    const monthlySavings = series.savings[i] || 0;
+    netWorths.unshift(runningNetWorth);
+    runningNetWorth -= monthlySavings;
+  }
+  if (netWorthChart) netWorthChart.destroy();
+  netWorthChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: series.labels,
+      datasets: [
+        {
+          label: 'Net Worth (Assets − Liabilities)',
+          data: netWorths,
+          borderColor: '#4dd0e1',
+          backgroundColor: 'rgba(77, 208, 225, 0.1)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 5,
+          pointBackgroundColor: '#4dd0e1',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: '#fff' } },
+        title: { display: false }
+      },
+      scales: {
+        x: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+        y: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+      }
+    }
+  });
+}
+
+function renderCashflowTrendChart() {
+  const canvas = document.getElementById('cashflow-trend-chart');
+  if (!canvas) return;
+  const series = buildMonthlySeries(6);
+  if (cashflowTrendChart) cashflowTrendChart.destroy();
+  cashflowTrendChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: series.labels,
+      datasets: [
+        {
+          label: 'Cashflow',
+          data: series.savings,
+          backgroundColor: series.savings.map((val) => (val >= 0 ? '#7dd71d' : '#ff6b6b')),
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: '#fff' } },
+        title: { display: false }
+      },
+      scales: {
+        x: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+        y: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+      }
+    }
+  });
+}
+
+function renderExpenseTrendChart() {
+  const canvas = document.getElementById('expense-trend-chart');
+  if (!canvas) return;
+  const series = buildMonthlySeries(6);
+  if (expenseTrendChart) expenseTrendChart.destroy();
+  expenseTrendChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: series.labels,
+      datasets: [
+        {
+          label: 'Monthly Expenses',
+          data: series.expenses,
+          borderColor: '#ff6b6b',
+          backgroundColor: 'rgba(255, 107, 107, 0.1)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 5,
+          pointBackgroundColor: '#ff6b6b',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: '#fff' } },
+        title: { display: false }
+      },
+      scales: {
+        x: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+        y: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+      }
+    }
+  });
+}
+
+function renderBudgetVsActualChart() {
+  const canvas = document.getElementById('budget-vs-actual-chart');
+  if (!canvas) return;
+  const expensesByCategory = groupExpenses();
+  const categories = ['food', 'transport', 'entertainment', 'shopping'];
+  const labels = categories.map(capitalize).filter((cat) => state.budgets[cat.toLowerCase()] > 0);
+  const budgetData = categories
+    .filter((cat) => state.budgets[cat] > 0)
+    .map((cat) => state.budgets[cat]);
+  const actualData = categories
+    .filter((cat) => state.budgets[cat] > 0)
+    .map((cat) => expensesByCategory[cat] || 0);
+  if (budgetVsActualChart) budgetVsActualChart.destroy();
+  if (labels.length === 0) return;
+  budgetVsActualChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Budget',
+          data: budgetData,
+          backgroundColor: '#4dd0e1',
+          borderRadius: 4
+        },
+        {
+          label: 'Actual',
+          data: actualData,
+          backgroundColor: '#ff6b6b',
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: '#fff' } },
+        title: { display: false }
+      },
+      scales: {
+        x: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } },
+        y: { ticks: { color: '#fff' }, grid: { color: 'rgba(255,255,255,0.1)' } }
+      }
+    }
+  });
+}
+
+function renderEmergencyGauge() {
+  const { target, saved } = state.emergency;
+  const percent = target > 0 ? Math.min(100, (saved / target) * 100) : 0;
+  const degrees = (percent / 100) * 360;
+  const gaugeFill = document.getElementById('emergency-gauge-fill');
+  if (gaugeFill) {
+    gaugeFill.style.background = `conic-gradient(
+      var(--success) 0deg,
+      var(--success) ${degrees}deg,
+      transparent ${degrees}deg,
+      transparent 360deg
+    )`;
+  }
+  const gaugePercent = document.getElementById('emergency-gauge-percent');
+  if (gaugePercent) gaugePercent.textContent = `${percent.toFixed(1)}%`;
+  const gaugeDetails = document.getElementById('emergency-gauge-details');
+  if (gaugeDetails) gaugeDetails.textContent = `${formatCurrency(saved)} / ${formatCurrency(target)}`;
+  const gaugeTarget = document.getElementById('emergency-gauge-target');
+  if (gaugeTarget) gaugeTarget.textContent = formatCurrency(target);
+  const gaugeSaved = document.getElementById('emergency-gauge-saved');
+  if (gaugeSaved) gaugeSaved.textContent = formatCurrency(saved);
+  const gaugeRemaining = document.getElementById('emergency-gauge-remaining');
+  if (gaugeRemaining) gaugeRemaining.textContent = formatCurrency(Math.max(0, target - saved));
 }

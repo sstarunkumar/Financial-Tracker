@@ -464,6 +464,92 @@ main {
   border: 1px solid var(--muted);
 }
 
+.emergency-gauge-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.emergency-gauge {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--accent) 0deg,
+    var(--accent) 0deg,
+    var(--card-dark) 0deg,
+    var(--card-dark) 360deg
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.emergency-gauge::before {
+  content: '';
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: var(--card);
+}
+
+.gauge-fill {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--success) 0deg,
+    var(--success) 0deg,
+    transparent 0deg
+  );
+  transition: background 0.5s ease;
+  z-index: 1;
+}
+
+.gauge-text {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: var(--text);
+}
+
+.gauge-text span {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.gauge-text small {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+.emergency-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  width: 100%;
+}
+
+.emergency-stats > div {
+  background: var(--card-dark);
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  text-align: center;
+}
+
+canvas {
+  max-height: 400px;
+}
+
 footer {
   padding: 1.5rem;
   text-align: center;
@@ -490,5 +576,32 @@ footer {
     padding: 0.6rem 1rem;
     font-size: 0.85rem;
     white-space: nowrap;
+  }
+
+  canvas {
+    max-height: 300px !important;
+  }
+
+  .emergency-gauge {
+    width: 150px;
+    height: 150px;
+  }
+
+  .emergency-gauge::before {
+    width: 120px;
+    height: 120px;
+  }
+
+  .gauge-fill {
+    width: 150px;
+    height: 150px;
+  }
+
+  .gauge-text span {
+    font-size: 1.5rem;
+  }
+
+  .emergency-stats {
+    grid-template-columns: 1fr;
   }
 }
