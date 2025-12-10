@@ -321,6 +321,7 @@ function renderAll() {
   renderMonthlyReport();
   renderTrendChart();
   renderAnalyticsCharts();
+  renderSuggestions();
 }
 
 function renderList(key, elementId) {
@@ -644,6 +645,10 @@ function bindTabs() {
         // Re-render analytics charts when analytics tab is opened
         if (targetTab === 'analytics') {
           renderAnalyticsCharts();
+        }
+        // Re-render suggestions when suggestions tab is opened
+        if (targetTab === 'suggestions') {
+          renderSuggestions();
         }
       }
     });
@@ -1020,4 +1025,418 @@ function renderEmergencyGauge() {
   if (gaugeSaved) gaugeSaved.textContent = formatCurrency(saved);
   const gaugeRemaining = document.getElementById('emergency-gauge-remaining');
   if (gaugeRemaining) gaugeRemaining.textContent = formatCurrency(Math.max(0, target - saved));
+}
+
+function generateFinancialSuggestions() {
+  const suggestions = [];
+  const totalIncome = sum(state.income);
+  const totalExpenses = sum(state.expenses);
+  const totalAssets = sum(state.assets);
+  const totalLiabilities = sum(state.liabilities);
+  const savings = totalIncome + totalAssets - totalLiabilities - totalExpenses;
+  const cashflow = totalIncome - totalExpenses;
+  const savingsRate = totalIncome > 0 ? (savings / totalIncome) * 100 : 0;
+  const expensesByCategory = groupExpenses();
+  const series = buildMonthlySeries(3);
+  const monthlyExpenses = series.expenses;
+  const needsCategories = ['Food', 'Transport', 'Utilities', 'Health'];
+  const wantsCategories = ['Entertainment', 'Shopping', 'Other'];
+
+  // Rule 1: 50-30-20 Rule Check
+  if (totalIncome > 0) {
+    const needsSpend = needsCategories.reduce((acc, cat) => acc + (expensesByCategory[cat.toLowerCase()] || 0), 0);
+    const wantsSpend = wantsCategories.reduce((acc, cat) => acc + (expensesByCategory[cat.toLowerCase()] || 0), 0);
+    const needsPercent = (needsSpend / totalIncome) * 100;
+    const wantsPercent = (wantsSpend / totalIncome) * 100;
+    const savingsPercent = savingsRate;
+
+    if (needsPercent > 50) {
+      suggestions.push({
+        type: 'budget',
+        category: 'budget',
+        severity: 'high',
+        title: 'Needs Exceed 50% Rule',
+        message: `Your needs spending is ${needsPercent.toFixed(1)}% of income. Target: ≤50%. Consider meal planning, cheaper transport options, or utility optimization.`,
+        action: 'Review and reduce essential category spending'
+      });
+    }
+    if (wantsPercent > 30) {
+      suggestions.push({
+        type: 'budget',
+        category: 'budget',
+        severity: 'medium',
+        title: 'Wants Exceed 30% Rule',
+        message: `Your wants spending is ${wantsPercent.toFixed(1)}% of income. Target: ≤30%. Try limiting entertainment to weekends only or reduce shopping frequency.`,
+        action: 'Cut discretionary spending by 10-15%'
+      });
+    }
+    if (savingsPercent < 20) {
+      suggestions.push({
+        type: 'savings',
+        category: 'savings',
+        severity: 'high',
+        title: 'Savings Below 20% Rule',
+        message: `Your savings rate is ${savingsPercent.toFixed(1)}%. Target: ≥20%. Automate 20% of income to savings before spending.`,
+        action: 'Set up automatic transfer of 20% income to savings'
+      });
+    }
+  }
+
+  // Rule 2: Pareto Spending Rule (80-20)
+  const sortedCategories = Object.entries(expensesByCategory)
+    .sort((a, b) => b[1] - a[1]);
+  const top20PercentCategories = Math.ceil(sortedCategories.length * 0.2);
+  const topCategoriesSpend = sortedCategories.slice(0, top20PercentCategories).reduce((acc, [, val]) => acc + val, 0);
+  const totalSpend = totalExpenses;
+  if (totalSpend > 0 && topCategoriesSpend / totalSpend > 0.8) {
+    const topCategory = sortedCategories[0];
+    suggestions.push({
+      type: 'optimization',
+      category: 'budget',
+      severity: 'medium',
+      title: 'Pareto Rule: Focus on Top Categories',
+      message: `${capitalize(topCategory[0])} accounts for ${((topCategory[1] / totalSpend) * 100).toFixed(1)}% of spending. Top 20% categories drive 80% of expenses. Optimize these first.`,
+      action: `Review and optimize ${capitalize(topCategory[0])} spending`
+    });
+  }
+
+  // Rule 3: Savings Rate Health Check
+  if (savingsRate < 20 && totalIncome > 0) {
+    suggestions.push({
+      type: 'savings',
+      category: 'savings',
+      severity: 'high',
+      title: 'Low Savings Rate Warning',
+      message: `Your savings rate is ${savingsRate.toFixed(1)}%. Aim for at least 20%. Consider reducing expenses or increasing income streams.`,
+      action: 'Increase savings rate to 20% minimum'
+    });
+  } else if (savingsRate > 50 && totalIncome > 0) {
+    suggestions.push({
+      type: 'investments',
+      category: 'investments',
+      severity: 'low',
+      title: 'Excellent Savings Rate!',
+      message: `Amazing! Your savings rate is ${savingsRate.toFixed(1)}%. Consider investing surplus in SIP, FD, or stocks for better returns.`,
+      action: 'Start investing 30-40% of surplus in diversified portfolio'
+    });
+  }
+
+  // Rule 4: Lifestyle Creep Detection
+  if (monthlyExpenses.length >= 3) {
+    const isIncreasing = monthlyExpenses.every((val, i) => i === 0 || val >= monthlyExpenses[i - 1]);
+    if (isIncreasing && monthlyExpenses[2] > monthlyExpenses[0] * 1.1) {
+      const increasePercent = ((monthlyExpenses[2] - monthlyExpenses[0]) / monthlyExpenses[0]) * 100;
+      suggestions.push({
+        type: 'lifestyle',
+        category: 'general',
+        severity: 'medium',
+        title: 'Lifestyle Creep Detected',
+        message: `Your expenses increased ${increasePercent.toFixed(1)}% over 3 months. This is lifestyle creep. Review recent purchases and cut non-essential upgrades.`,
+        action: 'Freeze spending on wants for next month'
+      });
+    }
+  }
+
+  // Rule 5: Emergency Fund Status
+  const { target, saved } = state.emergency;
+  const monthlyExpenseAvg = totalExpenses > 0 ? totalExpenses / Math.max(1, state.expenses.length) : 0;
+  const threeMonthsExpenses = monthlyExpenseAvg * 3;
+  if (target > 0) {
+    const percentComplete = (saved / target) * 100;
+    if (percentComplete < 100) {
+      suggestions.push({
+        type: 'emergency',
+        category: 'emergency',
+        severity: percentComplete < 50 ? 'high' : 'medium',
+        title: 'Emergency Fund Progress',
+        message: `Emergency fund is ${percentComplete.toFixed(1)}% complete (${formatCurrency(saved)} / ${formatCurrency(target)}). Target: 3-6 months of expenses.`,
+        action: `Save ${formatCurrency(target - saved)} more to reach target`
+      });
+    }
+  } else if (threeMonthsExpenses > 0) {
+    suggestions.push({
+      type: 'emergency',
+      category: 'emergency',
+      severity: 'high',
+      title: 'Emergency Fund Not Set',
+      message: `Set an emergency fund target of ${formatCurrency(threeMonthsExpenses)} (3 months expenses). This is your financial safety net.`,
+      action: `Set emergency fund target to ${formatCurrency(threeMonthsExpenses)}`
+    });
+  }
+
+  // Rule 6: Budget vs Actual
+  Object.entries(state.budgets).forEach(([category, limit]) => {
+    if (limit > 0) {
+      const actual = expensesByCategory[category] || 0;
+      const overspend = actual - limit;
+      if (overspend > 0) {
+        suggestions.push({
+          type: 'overspending',
+          category: 'budget',
+          severity: overspend > limit * 0.2 ? 'high' : 'medium',
+          title: `Overspending: ${capitalize(category)}`,
+          message: `You overspent ${formatCurrency(overspend)} on ${category} (Budget: ${formatCurrency(limit)}, Actual: ${formatCurrency(actual)}).`,
+          action: `Reduce ${category} spending by ${formatCurrency(overspend)} next month`
+        });
+      } else if (actual < limit * 0.7) {
+        suggestions.push({
+          type: 'budget',
+          category: 'budget',
+          severity: 'low',
+          title: `Budget Adjustment: ${capitalize(category)}`,
+          message: `You're spending ${formatCurrency(actual)} vs budget ${formatCurrency(limit)} on ${category}. Consider reducing budget to match actual.`,
+          action: `Adjust ${category} budget to ${formatCurrency(actual)}`
+        });
+      }
+    }
+  });
+
+  // Rule 7: Daily Spending Allowance
+  if (totalIncome > 0) {
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+    const currentDay = new Date().getDate();
+    const remainingDays = daysInMonth - currentDay;
+    const monthlyBudget = Object.values(state.budgets).reduce((acc, val) => acc + val, 0) || totalIncome * 0.8;
+    const spentThisMonth = totalExpenses;
+    const remainingBudget = Math.max(0, monthlyBudget - spentThisMonth);
+    const dailyAllowance = remainingDays > 0 ? remainingBudget / remainingDays : 0;
+    if (dailyAllowance > 0 && dailyAllowance < totalIncome * 0.05) {
+      suggestions.push({
+        type: 'budget',
+        category: 'budget',
+        severity: 'medium',
+        title: 'Low Daily Spending Allowance',
+        message: `You have ${formatCurrency(remainingBudget)} left for ${remainingDays} days. Daily allowance: ${formatCurrency(dailyAllowance)}. Be mindful of spending.`,
+        action: 'Track daily expenses to stay within allowance'
+      });
+    }
+  }
+
+  // Rule 8: Subscription Waste Detector
+  const totalSubscriptionCost = state.subscriptions.reduce((acc, sub) => acc + sub.amount, 0);
+  if (totalSubscriptionCost > totalIncome * 0.1 && totalIncome > 0) {
+    suggestions.push({
+      type: 'subscriptions',
+      category: 'general',
+      severity: 'high',
+      title: 'High Subscription Costs',
+      message: `Subscriptions cost ${formatCurrency(totalSubscriptionCost)} (${((totalSubscriptionCost / totalIncome) * 100).toFixed(1)}% of income). Review and cancel unused services.`,
+      action: 'Audit subscriptions and cancel unused ones'
+    });
+  }
+  state.subscriptions.forEach((sub) => {
+    if (sub.amount > totalIncome * 0.1 && totalIncome > 0) {
+      suggestions.push({
+        type: 'subscriptions',
+        category: 'general',
+        severity: 'medium',
+        title: `Expensive Subscription: ${sub.name}`,
+        message: `${sub.name} costs ${formatCurrency(sub.amount)}/month (${((sub.amount / totalIncome) * 100).toFixed(1)}% of income). Consider cheaper alternatives.`,
+        action: `Review ${sub.name} subscription and find alternatives`
+      });
+    }
+  });
+
+  // Rule 9: High-Spend Day Detector
+  const expensesByDate = {};
+  state.expenses.forEach((exp) => {
+    if (exp.date) {
+      expensesByDate[exp.date] = (expensesByDate[exp.date] || 0) + exp.amount;
+    }
+  });
+  const dailyAverages = Object.values(expensesByDate);
+  if (dailyAverages.length > 0) {
+    const avgDailySpend = dailyAverages.reduce((a, b) => a + b, 0) / dailyAverages.length;
+    Object.entries(expensesByDate).forEach(([date, amount]) => {
+      if (amount > avgDailySpend * 2) {
+        suggestions.push({
+          type: 'spike',
+          category: 'general',
+          severity: 'medium',
+          title: 'High Spending Day Detected',
+          message: `You spent ${formatCurrency(amount)} on ${formatDate(date)} (${(amount / avgDailySpend).toFixed(1)}× average). Review what caused this spike.`,
+          action: 'Identify spike cause and avoid similar patterns'
+        });
+      }
+    });
+  }
+
+  // Rule 10: Cashflow Review
+  if (cashflow < 0) {
+    suggestions.push({
+      type: 'cashflow',
+      category: 'general',
+      severity: 'high',
+      title: 'Negative Cashflow Warning',
+      message: `Your cashflow is negative (${formatCurrency(Math.abs(cashflow))}). Expenses exceed income. Urgently cut spending or increase income.`,
+      action: 'Reduce expenses by 20% or find additional income sources'
+    });
+  } else if (cashflow > totalIncome * 0.3 && totalIncome > 0) {
+    suggestions.push({
+      type: 'investments',
+      category: 'investments',
+      severity: 'low',
+      title: 'Surplus Cash Available',
+      message: `You have ${formatCurrency(cashflow)} surplus monthly. Consider investing in SIP (₹500+), FD, or emergency fund.`,
+      action: 'Start SIP with ₹500-1000 monthly surplus'
+    });
+  }
+
+  // Rule 11: Expenses Category Optimizer
+  const foodSpend = expensesByCategory.food || 0;
+  const transportSpend = expensesByCategory.transport || 0;
+  if (foodSpend > 0 && transportSpend > 0) {
+    if (foodSpend > transportSpend * 2) {
+      suggestions.push({
+        type: 'optimization',
+        category: 'budget',
+        severity: 'medium',
+        title: 'Food Spending High',
+        message: `Food spending (${formatCurrency(foodSpend)}) is ${(foodSpend / transportSpend).toFixed(1)}× transport. Try meal planning, batch cooking, or limit food delivery to 2× per week.`,
+        action: 'Plan weekly meals and reduce food delivery frequency'
+      });
+    }
+    if (transportSpend > foodSpend * 1.5) {
+      suggestions.push({
+        type: 'optimization',
+        category: 'budget',
+        severity: 'medium',
+        title: 'Transport Spending High',
+        message: `Transport spending (${formatCurrency(transportSpend)}) is high. Consider monthly passes, shared rides, or carpooling to save money.`,
+        action: 'Switch to monthly transport passes or shared rides'
+      });
+    }
+  }
+
+  // Rule 12: Debt Handling
+  if (state.debts.length > 0) {
+    const totalDebt = state.debts.reduce((acc, debt) => acc + debt.remaining, 0);
+    const highestInterestDebt = [...state.debts].sort((a, b) => b.rate - a.rate)[0];
+    const smallestDebt = [...state.debts].sort((a, b) => a.remaining - b.remaining)[0];
+    if (cashflow > 0) {
+      if (highestInterestDebt.rate > 10) {
+        suggestions.push({
+          type: 'debt',
+          category: 'debt',
+          severity: 'high',
+          title: 'High Interest Debt Priority',
+          message: `${highestInterestDebt.name} has ${highestInterestDebt.rate}% interest. Use Avalanche method: pay extra on highest interest debt first.`,
+          action: `Pay extra ${formatCurrency(cashflow * 0.3)} monthly on ${highestInterestDebt.name}`
+        });
+      } else {
+        suggestions.push({
+          type: 'debt',
+          category: 'debt',
+          severity: 'medium',
+          title: 'Debt Payoff Strategy',
+          message: `Total debt: ${formatCurrency(totalDebt)}. Use Snowball method: pay off ${smallestDebt.name} first for quick wins, then tackle larger debts.`,
+          action: `Pay extra on ${smallestDebt.name} to eliminate it faster`
+        });
+      }
+    }
+  }
+
+  // Rule 13: Goal Progress
+  state.goals.forEach((goal) => {
+    const progress = goal.target > 0 ? (goal.saved / goal.target) * 100 : 0;
+    if (progress < 20) {
+      const monthlyNeeded = (goal.target - goal.saved) / 12;
+      suggestions.push({
+        type: 'goals',
+        category: 'general',
+        severity: 'medium',
+        title: `Goal Progress: ${goal.name}`,
+        message: `${goal.name} is ${progress.toFixed(1)}% complete. Save ${formatCurrency(monthlyNeeded)}/month to reach target in 12 months.`,
+        action: `Increase monthly savings for ${goal.name} by ${formatCurrency(monthlyNeeded)}`
+      });
+    } else if (progress > 70 && progress < 100) {
+      suggestions.push({
+        type: 'goals',
+        category: 'general',
+        severity: 'low',
+        title: `Goal Almost Complete: ${goal.name}`,
+        message: `${goal.name} is ${progress.toFixed(1)}% complete! Just ${formatCurrency(goal.target - goal.saved)} left. Consider finishing it sooner.`,
+        action: `Accelerate savings to complete ${goal.name} faster`
+      });
+    }
+  });
+
+  // Rule 14: Investment Suggestion Logic
+  const totalInvested = Object.values(state.investments).reduce((acc, inv) => acc + inv.invested, 0);
+  if (cashflow > totalIncome * 0.2 && totalIncome > 0 && totalInvested === 0) {
+    suggestions.push({
+      type: 'investments',
+      category: 'investments',
+      severity: 'medium',
+      title: 'Start Investing',
+      message: `You have ${formatCurrency(cashflow)} monthly surplus but no investments. Start small with ₹500 SIP in mutual funds for long-term wealth.`,
+      action: 'Start ₹500 monthly SIP in diversified mutual fund'
+    });
+  } else if (cashflow > totalIncome * 0.2 && totalIncome > 0) {
+    suggestions.push({
+      type: 'investments',
+      category: 'investments',
+      severity: 'low',
+      title: 'Increase Investments',
+      message: `You have ${formatCurrency(cashflow)} monthly surplus. Consider increasing SIP or diversifying into stocks, gold, or FD.`,
+      action: 'Increase monthly SIP or add new investment category'
+    });
+  }
+
+  // Rule 15: Transport vs Food Ratio Check (already covered in Rule 11, but adding specific tips)
+  if (foodSpend > transportSpend * 2 && foodSpend > 0) {
+    suggestions.push({
+      type: 'optimization',
+      category: 'budget',
+      severity: 'low',
+      title: 'Food Optimization Tips',
+      message: `Food spending is high. Try: meal prep on weekends, buy groceries in bulk, limit restaurant visits to weekends, use cashback apps.`,
+      action: 'Implement meal planning and reduce food delivery'
+    });
+  }
+
+  return suggestions.sort((a, b) => {
+    const severityOrder = { high: 3, medium: 2, low: 1 };
+    return severityOrder[b.severity] - severityOrder[a.severity];
+  });
+}
+
+function renderSuggestions() {
+  const container = document.getElementById('suggestions-container');
+  if (!container) return;
+  const suggestions = generateFinancialSuggestions();
+  container.innerHTML = '';
+  if (suggestions.length === 0) {
+    container.innerHTML = '<p class="muted" style="text-align: center; padding: 2rem;">Great job! No urgent suggestions at the moment. Keep up the good financial habits!</p>';
+    return;
+  }
+  suggestions.forEach((suggestion) => {
+    const card = document.createElement('div');
+    card.className = `suggestion-card suggestion-${suggestion.severity}`;
+    const iconMap = {
+      high: '⚠️',
+      medium: '💡',
+      low: '✅'
+    };
+    const categoryIcons = {
+      savings: '💰',
+      budget: '📊',
+      investments: '📈',
+      emergency: '🛡️',
+      debt: '💳',
+      general: '💬'
+    };
+    card.innerHTML = `
+      <div class="suggestion-header">
+        <span class="suggestion-icon">${iconMap[suggestion.severity]} ${categoryIcons[suggestion.category] || '💡'}</span>
+        <span class="suggestion-severity severity-${suggestion.severity}">${suggestion.severity}</span>
+      </div>
+      <h3 class="suggestion-title">${suggestion.title}</h3>
+      <p class="suggestion-message">${suggestion.message}</p>
+      <div class="suggestion-action">
+        <strong>Action:</strong> ${suggestion.action}
+      </div>
+    `;
+    container.appendChild(card);
+  });
 }
