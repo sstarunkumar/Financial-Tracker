@@ -1,0 +1,9 @@
+ - Getting Started:
+
+ https://payloadcms.com/docs/getting-started/what-is-payload
+
+https://payloadcms.com/docs/configuration/overview
+
+   Have feedback?  Visit us on GitHub:
+
+ https://github.com/payloadcms/payload.

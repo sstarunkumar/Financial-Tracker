@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Personal Finance Control Center</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Financial wellness cockpit</p>
+        <h1>Personal Finance Dashboard</h1>
+        <p>Track everything from income to debt, budgets, investments, and goals.</p>
+      </div>
+      <div class="header-highlight">
+        <p>Live Savings Rate</p>
+        <span id="header-savings-rate">0%</span>
+      </div>
+    </header>
+
+    <main>
+      <div class="tabs-container">
+        <div class="tabs-nav">
+          <button class="tab-btn active" data-tab="overview">Overview</button>
+          <button class="tab-btn" data-tab="income-expenses">Income & Expenses</button>
+          <button class="tab-btn" data-tab="assets-liabilities">Assets & Liabilities</button>
+          <button class="tab-btn" data-tab="investments">Investments</button>
+          <button class="tab-btn" data-tab="goals">Goals</button>
+          <button class="tab-btn" data-tab="budget">Budget & Planning</button>
+          <button class="tab-btn" data-tab="debt">Debt Management</button>
+          <button class="tab-btn" data-tab="subscriptions">Subscriptions</button>
+        </div>
+
+        <div class="tab-panel active" id="overview-tab">
+          <div class="dashboard">
+            <section class="card" id="savings-section">
+              <h2>Savings</h2>
+              <p>Income + Assets − Liabilities − Expenses</p>
+              <div class="highlight-value" id="savings-balance">₹0</div>
+              <p id="savings-status" class="muted"></p>
+            </section>
+
+            <section class="card" id="cashflow-section">
+              <h2>Cashflow</h2>
+              <p>Cashflow = Income − Expenses</p>
+              <div class="highlight-value" id="cashflow">₹0</div>
+            </section>
+
+            <section class="card" id="revenue-section">
+              <h2>Revenue</h2>
+              <p>Total input (income streams)</p>
+              <div class="highlight-value" id="revenue-value">₹0</div>
+            </section>
+
+            <section class="card" id="savings-meter">
+              <h2>Savings Rate Indicator</h2>
+              <div class="meter">
+                <div class="meter-fill" id="savings-meter-fill"></div>
+                <span id="savings-meter-text">0%</span>
+              </div>
+              <p class="muted">Savings Rate = (Savings ÷ Income) × 100</p>
+            </section>
+
+            <section class="card full-span" id="monthly-report">
+              <div class="card-head">
+                <h2>Monthly Report &amp; Insights</h2>
+                <span>Auto-updates from your entries</span>
+              </div>
+              <div class="insights-grid">
+                <div>
+                  <p class="muted">Total Income</p>
+                  <strong id="report-income">₹0</strong>
+                </div>
+                <div>
+                  <p class="muted">Total Expenses</p>
+                  <strong id="report-expenses">₹0</strong>
+                </div>
+                <div>
+                  <p class="muted">Highest Spending Category</p>
+                  <strong id="report-category">N/A</strong>
+                </div>
+                <div>
+                  <p class="muted">Savings Rate</p>
+                  <strong id="report-savings-rate">0%</strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="card full-span" id="trend-section">
+              <div class="card-head">
+                <h2>Monthly Trend</h2>
+                <span>Simple bar chart for last 6 months</span>
+              </div>
+              <canvas id="trend-chart" height="120"></canvas>
+            </section>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="income-expenses-tab">
+          <div class="dashboard">
+            <section class="card" id="income-section">
+              <div class="card-head">
+                <h2>Income</h2>
+                <span id="income-total">₹0</span>
+              </div>
+              <ul class="item-list" id="income-list"></ul>
+              <form id="income-form" class="stack-form">
+                <input name="name" placeholder="Entity" required />
+                <input name="amount" type="number" placeholder="Amount" min="0" step="0.01" required />
+                <input name="date" type="date" required />
+                <input name="notes" placeholder="Notes (optional)" />
+                <button type="submit">Add Income</button>
+              </form>
+            </section>
+
+            <section class="card" id="expenses-section">
+              <div class="card-head">
+                <h2>Expenses</h2>
+                <span id="expenses-total">₹0</span>
+              </div>
+              <ul class="item-list" id="expenses-list"></ul>
+              <form id="expenses-form" class="stack-form">
+                <input name="name" placeholder="Entity" required />
+                <input name="amount" type="number" placeholder="Amount" min="0" step="0.01" required />
+                <select name="category" required>
+                  <option value="Food">Food</option>
+                  <option value="Transport">Transport</option>
+                  <option value="Entertainment">Entertainment</option>
+                  <option value="Shopping">Shopping</option>
+                  <option value="Utilities">Utilities</option>
+                  <option value="Health">Health</option>
+                  <option value="Other">Other</option>
+                </select>
+                <input name="date" type="date" required />
+                <input name="notes" placeholder="Notes (optional)" />
+                <button type="submit">Add Expense</button>
+              </form>
+            </section>
+
+            <section class="card full-span" id="transactions-section">
+              <div class="card-head">
+                <h2>Transaction History</h2>
+                <span>Every entry keeps date, notes & category</span>
+              </div>
+              <table class="transactions-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody id="transaction-rows"></tbody>
+              </table>
+            </section>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="assets-liabilities-tab">
+          <div class="dashboard">
+            <section class="card" id="assets-section">
+              <div class="card-head">
+                <h2>Assets</h2>
+                <span id="assets-total">₹0</span>
+              </div>
+              <ul class="item-list" id="assets-list"></ul>
+              <form id="assets-form" class="stack-form">
+                <input name="name" placeholder="Entity" required />
+                <input name="amount" type="number" placeholder="Value" min="0" step="0.01" required />
+                <button type="submit">Add Asset</button>
+              </form>
+            </section>
+
+            <section class="card" id="liabilities-section">
+              <div class="card-head">
+                <h2>Liabilities</h2>
+                <span id="liabilities-total">₹0</span>
+              </div>
+              <ul class="item-list" id="liabilities-list"></ul>
+              <form id="liabilities-form" class="stack-form">
+                <input name="name" placeholder="Entity" required />
+                <input name="amount" type="number" placeholder="Amount" min="0" step="0.01" required />
+                <button type="submit">Add Liability</button>
+              </form>
+            </section>
+
+            <section class="card full-span" id="emergency-section">
+              <h2>Emergency Fund</h2>
+              <div class="pill-grid">
+                <div>
+                  <p class="muted">Target</p>
+                  <strong id="emergency-target">₹0</strong>
+                </div>
+                <div>
+                  <p class="muted">Saved</p>
+                  <strong id="emergency-saved">₹0</strong>
+                </div>
+                <div>
+                  <p class="muted">Gap</p>
+                  <strong id="emergency-gap">₹0</strong>
+                </div>
+              </div>
+              <form id="emergency-target-form" class="stack-form">
+                <input name="target" type="number" placeholder="Modify target" min="0" step="0.01" required />
+                <button type="submit">Save Target</button>
+              </form>
+              <form id="emergency-adjust-form" class="stack-form">
+                <input name="amount" type="number" placeholder="Add or remove money" step="0.01" required />
+                <select name="action">
+                  <option value="add">Add to Emergency</option>
+                  <option value="remove">Remove from Emergency</option>
+                </select>
+                <button type="submit">Update Fund</button>
+              </form>
+              <p class="muted">Track emergency fund contributions alongside your main savings.</p>
+            </section>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="investments-tab">
+          <div class="dashboard">
+            <section class="card full-span" id="investments-section">
+              <div class="card-head">
+                <h2>Investments</h2>
+                <span id="investment-summary">Total Invested ₹0</span>
+              </div>
+              <form id="investment-form" class="stack-form">
+                <select name="category" required>
+                  <option value="SIP">SIP (Mutual Funds)</option>
+                  <option value="Stocks">Stocks</option>
+                  <option value="Gold">Gold</option>
+                  <option value="FD/RD">FD / RD</option>
+                  <option value="Crypto">Crypto</option>
+                </select>
+                <input name="invested" type="number" placeholder="Invested amount" min="0" step="0.01" required />
+                <input name="current" type="number" placeholder="Current value" min="0" step="0.01" required />
+                <button type="submit">Update Investment</button>
+              </form>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Invested</th>
+                    <th>Current Value</th>
+                    <th>Return %</th>
+                  </tr>
+                </thead>
+                <tbody id="investment-rows"></tbody>
+              </table>
+            </section>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="goals-tab">
+          <div class="dashboard">
+            <section class="card full-span" id="goals-section">
+              <div class="card-head">
+                <h2>Goals</h2>
+                <span>Track long & short term dreams</span>
+              </div>
+              <form id="goal-form" class="stack-form">
+                <input name="name" placeholder="Goal (e.g. Buy laptop)" required />
+                <input name="target" type="number" placeholder="Target amount" min="0" step="0.01" required />
+                <input name="saved" type="number" placeholder="Saved amount" min="0" step="0.01" />
+                <select name="type" required>
+                  <option value="short">Short-term</option>
+                  <option value="long">Long-term</option>
+                </select>
+                <button type="submit">Add Goal</button>
+              </form>
+              <div class="goal-grid">
+                <div>
+                  <h3>Short-term</h3>
+                  <div id="short-goals"></div>
+                </div>
+                <div>
+                  <h3>Long-term</h3>
+                  <div id="long-goals"></div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="budget-tab">
+          <div class="dashboard">
+            <section class="card full-span" id="budget-section">
+              <div class="card-head">
+                <h2>Budget Planning</h2>
+                <span>Set limits & monitor remaining</span>
+              </div>
+              <form id="budget-form" class="grid-form">
+                <label>Food budget<input name="food" type="number" min="0" step="0.01" /></label>
+                <label>Transport budget<input name="transport" type="number" min="0" step="0.01" /></label>
+                <label>Entertainment budget<input name="entertainment" type="number" min="0" step="0.01" /></label>
+                <label>Shopping budget<input name="shopping" type="number" min="0" step="0.01" /></label>
+                <button type="submit">Save Budgets</button>
+              </form>
+              <div id="budget-progress" class="progress-list"></div>
+            </section>
+
+            <section class="card full-span" id="tips-section">
+              <h2>Tips for Financial Freedom</h2>
+              <ul class="tips">
+                <li>Goal 1: Income + Assets &gt; Expenses + Liabilities.</li>
+                <li>Goal 2: Assets &gt; Expenses + Liabilities for long-term wealth.</li>
+                <li>Automate investments and emergency savings first.</li>
+                <li>Track wants vs needs weekly to avoid lifestyle creep.</li>
+                <li>Review subscriptions quarterly and cancel under-used services.</li>
+              </ul>
+            </section>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="debt-tab">
+          <div class="dashboard">
+            <section class="card full-span" id="debt-section">
+              <div class="card-head">
+                <h2>Debt Tracker</h2>
+                <span>Monitor loans & payoff plans</span>
+              </div>
+              <form id="debt-form" class="grid-form">
+                <label>Loan name<input name="name" required /></label>
+                <label>Total amount<input name="total" type="number" min="0" step="0.01" required /></label>
+                <label>Remaining<input name="remaining" type="number" min="0" step="0.01" required /></label>
+                <label>Monthly EMI<input name="emi" type="number" min="0" step="0.01" required /></label>
+                <label>Interest rate %<input name="rate" type="number" min="0" step="0.01" required /></label>
+                <label>Payoff date<input name="payoff" type="date" required /></label>
+                <button type="submit">Add Debt</button>
+              </form>
+              <div id="debt-list" class="stack"></div>
+            </section>
+
+            <section class="card" id="emi-section">
+              <h2>EMI Calculator</h2>
+              <form id="emi-form" class="stack-form">
+                <input name="principal" type="number" placeholder="Loan amount" min="0" step="0.01" required />
+                <input name="rate" type="number" placeholder="Annual rate %" min="0" step="0.01" required />
+                <input name="tenure" type="number" placeholder="Tenure (months)" min="1" required />
+                <button type="submit">Calculate EMI</button>
+              </form>
+              <div class="highlight-value" id="emi-result">₹0 per month</div>
+            </section>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="subscriptions-tab">
+          <div class="dashboard">
+            <section class="card full-span" id="subscriptions-section">
+              <div class="card-head">
+                <h2>Subscriptions Tracker</h2>
+                <span>Keep recurring costs in check</span>
+              </div>
+              <form id="subscription-form" class="grid-form">
+                <label>Name<input name="name" required /></label>
+                <label>Category<input name="category" placeholder="OTT / Cloud / Gym" required /></label>
+                <label>Monthly cost<input name="amount" type="number" min="0" step="0.01" required /></label>
+                <label>Next billing date<input name="billing" type="date" required /></label>
+                <label>Notes<input name="notes" /></label>
+                <button type="submit">Add Subscription</button>
+              </form>
+              <div id="subscription-list" class="stack"></div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>Track. Improve. Repeat. Built for clarity and action.</p>
+    </footer>
+
+    <script src="script.js" defer></script>
+  </body>
+</html>
